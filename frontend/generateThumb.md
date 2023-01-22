@@ -1,6 +1,6 @@
 ## Generate thumbnail from src 
 
-```javascript
+```typescript
 
 export async function generateThumbnail(imageSrc: string): Promise<string> {
 
