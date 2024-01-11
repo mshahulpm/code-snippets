@@ -1,9 +1,48 @@
 /** Pagination util for prisma orm */
 
-import { handlePaginationQuery } from 'src/utils/common';
 import { BadRequestException } from '@nestjs/common'
 import { Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
+
+export function handlePaginationQuery(query: any) {
+
+
+  let { page, limit, search = '', startDate, endDate, ...others } = query;
+
+  page = Math.abs(parseInt(page) || 1) - 1;
+  limit = Math.abs(parseInt(limit) || 10);
+
+  const filter = {};
+  const sort = {} as { [key: string]: string }
+
+  Object.entries(others).forEach(([key, value]) => {
+
+    // if filed start with Sort_ then add to sort list 
+    if (key.startsWith('Sort_')) {
+      sort[key.slice(5)] = value as string
+      return
+    }
+
+    if (typeof value !== 'object') {
+      filter[key] = value;
+    }
+    if (Array.isArray(value)) {
+      filter[key] = {
+        in: value,
+      };
+    }
+  });
+
+  return {
+    sort,
+    take: limit,
+    skip: page * limit,
+    search,
+    filter,
+    startDate,
+    endDate
+  };
+}
 
 type paginateArgs<ModelType, ModelArgType> = {
   model: any;
@@ -12,13 +51,13 @@ type paginateArgs<ModelType, ModelArgType> = {
   query?: any;
   skipDateSort?: boolean
 };
-export async function prismaPaginate<T, T2>({
+export async function prismaPaginate<PrismaModelType, PrismaModelArgType>({
   model,
   args,
   query,
   searchFields,
   skipDateSort
-}: paginateArgs<T, T2>) {
+}: paginateArgs<PrismaModelType, PrismaModelArgType>) {
 
 
   let { filter, search, sort, startDate, endDate, ...rest } = handlePaginationQuery(query);
